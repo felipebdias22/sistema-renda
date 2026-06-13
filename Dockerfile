@@ -14,10 +14,14 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Variáveis PÚBLICAS são embutidas no build → precisam estar presentes aqui.
-# No EasyPanel, defina-as como "Build Args" (ou Environment) do serviço.
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Variáveis PÚBLICAS são embutidas no código durante o build (o Next.js
+# "grava" os valores no bundle). A URL e a chave ANON são públicas por
+# natureza (expostas no navegador, protegidas por RLS), então ficam aqui
+# como padrão para o build sempre ter os valores — mesmo que a plataforma
+# não passe build args. Podem ser sobrescritas via --build-arg.
+# NUNCA coloque aqui chaves secretas (service_role, Anthropic): essas só em runtime.
+ARG NEXT_PUBLIC_SUPABASE_URL=https://jpoxdsitdbaduqxbjjin.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwb3hkc2l0ZGJhZHVxeGJqamluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTM0OTQsImV4cCI6MjA5Njc2OTQ5NH0.Qp16S-ztWElSqI9oiBXu3iTuEquitWEn0h6Ct7FEhPw
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
