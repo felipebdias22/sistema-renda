@@ -17,7 +17,7 @@ export function AgentesList({ agentes }: { agentes: Agente[] }) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {agentes.map((a) => {
-        const thumb = vimeoThumb(a.video_tutorial_url);
+        const thumb = a.thumb ?? vimeoThumb(a.video_tutorial_url);
         return (
           <Link
             key={a.id}

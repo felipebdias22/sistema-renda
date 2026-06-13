@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Agente } from "@/lib/types";
+import { getVimeoThumbnail } from "@/lib/vimeo";
 import { AgentesList } from "./agentes-list";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,14 @@ export default async function AgentesPage() {
     .eq("ativo", true)
     .order("ordem", { ascending: true })
     .order("criado_em", { ascending: true });
+
+  // Enriquece com a thumbnail oficial do Vimeo (sempre atual)
+  const agentes = await Promise.all(
+    ((data as Agente[]) ?? []).map(async (a) => ({
+      ...a,
+      thumb: await getVimeoThumbnail(a.video_tutorial_url),
+    }))
+  );
 
   return (
     <div className="space-y-6">
@@ -33,7 +42,7 @@ export default async function AgentesPage() {
         </p>
       </div>
 
-      <AgentesList agentes={(data as Agente[]) ?? []} />
+      <AgentesList agentes={agentes} />
     </div>
   );
 }

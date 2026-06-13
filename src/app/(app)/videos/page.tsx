@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { VideosBrowser } from "./videos-browser";
+import { getVimeoThumbnail } from "@/lib/vimeo";
 import type { Nicho, Pais, Video } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,17 @@ export default async function VideosPage() {
     supabase.from("paises").select("*").order("nome"),
   ]);
 
+  // Enriquece cada vídeo com a thumbnail oficial do Vimeo (sempre atual)
+  const videos = await Promise.all(
+    ((videosRes.data as Video[]) ?? []).map(async (v) => ({
+      ...v,
+      thumb: await getVimeoThumbnail(v.vimeo_url),
+    }))
+  );
+
   return (
     <VideosBrowser
-      videos={(videosRes.data as Video[]) ?? []}
+      videos={videos}
       nichos={(nichosRes.data as Nicho[]) ?? []}
       paises={(paisesRes.data as Pais[]) ?? []}
     />

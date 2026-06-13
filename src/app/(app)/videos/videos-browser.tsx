@@ -191,7 +191,7 @@ function VideoCard({
   onToggleFav: (e: React.MouseEvent) => void;
   onOpen: () => void;
 }) {
-  const thumb = vimeoThumb(video.vimeo_url);
+  const thumb = video.thumb ?? vimeoThumb(video.vimeo_url);
 
   return (
     <button

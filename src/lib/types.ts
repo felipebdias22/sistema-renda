@@ -22,6 +22,7 @@ export type Video = {
   criado_em: string;
   nicho?: Nicho | null;
   pais?: Pais | null;
+  thumb?: string | null;
 };
 
 export type Agente = {
@@ -33,6 +34,7 @@ export type Agente = {
   ativo: boolean;
   ordem: number;
   criado_em: string;
+  thumb?: string | null;
 };
 
 export type Ganho = {
