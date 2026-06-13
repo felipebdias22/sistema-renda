@@ -1,8 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
+/**
+ * Confirma que o usuário logado é admin (via sessão/cookies) e devolve um
+ * cliente de SERVIÇO para as escritas — assim as operações do admin não
+ * esbarram no RLS. A autorização é garantida aqui antes de qualquer escrita.
+ */
 async function assertAdmin() {
   const supabase = await createClient();
   const {
@@ -12,7 +17,7 @@ async function assertAdmin() {
   if (!user || role !== "admin") {
     throw new Error("Acesso negado");
   }
-  return supabase;
+  return createServiceClient();
 }
 
 function str(v: FormDataEntryValue | null) {

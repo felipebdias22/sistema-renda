@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCotacaoDolar, hojeSP } from "@/lib/cotacao";
 import type { Ganho } from "@/lib/types";
@@ -12,12 +13,13 @@ export default async function LucrosPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const [{ data }, cotacao] = await Promise.all([
     supabase
       .from("ganhos")
       .select("*")
-      .eq("user_id", user!.id)
+      .eq("user_id", user.id)
       .order("data", { ascending: false })
       .order("criado_em", { ascending: false }),
     getCotacaoDolar(),

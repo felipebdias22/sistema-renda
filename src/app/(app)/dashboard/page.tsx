@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   PlaySquare,
   Bot,
@@ -54,10 +55,11 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const nome =
-    (user?.user_metadata?.name as string | undefined) ??
-    user?.email?.split("@")[0] ??
+    (user.user_metadata?.name as string | undefined) ??
+    user.email?.split("@")[0] ??
     "Aluno";
 
   const hoje = hojeSP();
@@ -66,7 +68,7 @@ export default async function DashboardPage() {
     supabase
       .from("ganhos")
       .select("data, valor_usd, valor_brl")
-      .eq("user_id", user!.id),
+      .eq("user_id", user.id),
     getCotacaoDolar(),
   ]);
   const ganhos = (data as Pick<Ganho, "data" | "valor_usd" | "valor_brl">[]) ?? [];
