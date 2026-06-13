@@ -24,6 +24,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Garante que a pasta public exista (Next a usa nos assets estáticos),
+# mesmo que o repositório não tenha enviado uma pasta vazia.
+RUN mkdir -p public
 RUN npm run build
 
 # ---------- 3. Runtime ----------
