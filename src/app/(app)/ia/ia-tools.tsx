@@ -64,6 +64,14 @@ function RoteiroTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RoteiroResult | null>(null);
+  const [restantes, setRestantes] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/ia/roteiro")
+      .then((r) => r.json())
+      .then((d) => setRestantes(d.restantes ?? null))
+      .catch(() => {});
+  }, []);
 
   async function gerar() {
     setError(null);
@@ -78,6 +86,7 @@ function RoteiroTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro");
       setResult(data);
+      if (typeof data.restantes === "number") setRestantes(data.restantes);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao gerar.");
     } finally {
@@ -85,8 +94,23 @@ function RoteiroTab() {
     }
   }
 
+  const esgotado = restantes !== null && restantes <= 0;
+
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-between rounded-xl border border-navy-700 bg-navy-900/60 px-4 py-3">
+        <span className="text-sm text-slate-400">Roteiros restantes hoje</span>
+        <span
+          className={cn(
+            "rounded-full px-3 py-1 text-sm font-bold",
+            esgotado
+              ? "bg-red-500/15 text-red-300"
+              : "bg-accent-green/15 text-accent-green"
+          )}
+        >
+          {restantes ?? "—"} / 10
+        </span>
+      </div>
       <div>
         <label className="label-muted">Entrada do tema</label>
         <textarea
@@ -97,7 +121,10 @@ function RoteiroTab() {
           className="input-field mt-1.5 resize-none"
         />
         <div className="mt-3 flex justify-end">
-          <Button onClick={gerar} disabled={loading || tema.trim().length < 2}>
+          <Button
+            onClick={gerar}
+            disabled={loading || esgotado || tema.trim().length < 2}
+          >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
