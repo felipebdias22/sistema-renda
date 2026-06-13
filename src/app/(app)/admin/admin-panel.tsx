@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { Plus, Pencil, Trash2, PlaySquare, Tags, Globe, Bot } from "lucide-react";
 import type { Agente, Nicho, Pais, Video } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,16 @@ function DeleteButton({
     >
       <Trash2 size={16} />
     </button>
+  );
+}
+
+/** Botão de salvar que se desabilita enquanto a ação roda (evita duplicar). */
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? "Salvando..." : "Salvar"}
+    </Button>
   );
 }
 
@@ -266,7 +277,7 @@ function VideosAdmin({
             >
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <SubmitButton />
           </div>
         </form>
       </Modal>
@@ -340,7 +351,7 @@ function NichosAdmin({ nichos }: { nichos: Nicho[] }) {
             >
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <SubmitButton />
           </div>
         </form>
       </Modal>
@@ -429,7 +440,7 @@ function PaisesAdmin({ paises }: { paises: Pais[] }) {
             >
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <SubmitButton />
           </div>
         </form>
       </Modal>
@@ -559,7 +570,7 @@ function AgentesAdmin({ agentes }: { agentes: Agente[] }) {
             >
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <SubmitButton />
           </div>
         </form>
       </Modal>
