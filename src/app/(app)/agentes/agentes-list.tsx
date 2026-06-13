@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Play, Bot, ArrowRight } from "lucide-react";
 import type { Agente } from "@/lib/types";
