@@ -11,6 +11,7 @@ import {
   Globe,
   Bot,
   ListPlus,
+  Images,
 } from "lucide-react";
 import type { Agente, Nicho, Pais, Video } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ import {
   saveVideo,
   deleteVideo,
   importVideos,
+  importCapas,
   saveNicho,
   deleteNicho,
   savePais,
@@ -166,6 +168,8 @@ function VideosAdmin({
   const [importOpen, setImportOpen] = useState(false);
   const [impNicho, setImpNicho] = useState("");
   const [impPais, setImpPais] = useState("");
+  const [capasOpen, setCapasOpen] = useState(false);
+  const [capasNicho, setCapasNicho] = useState("");
 
   function add() {
     setEditing(null);
@@ -188,7 +192,14 @@ function VideosAdmin({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold">Vídeos</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setCapasOpen(true)}
+          >
+            <Images size={15} /> Capas em massa
+          </Button>
           <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
             <ListPlus size={15} /> Importar em massa
           </Button>
@@ -436,6 +447,73 @@ function VideosAdmin({
               Cancelar
             </Button>
             <SubmitButton label="Importar" pendingLabel="Importando..." />
+          </div>
+        </form>
+      </Modal>
+
+      {/* Capas em massa */}
+      <Modal
+        open={capasOpen}
+        onClose={() => setCapasOpen(false)}
+        title="Capas em massa"
+        className="max-w-lg"
+      >
+        <form
+          action={async (fd) => {
+            await importCapas(fd);
+            setCapasOpen(false);
+            setCapasNicho("");
+          }}
+          className="space-y-4 p-5"
+        >
+          <div className="rounded-xl border border-navy-700 bg-navy-900/50 p-3 text-xs leading-relaxed text-slate-400">
+            <p className="font-semibold text-slate-300">Como usar:</p>
+            <p className="mt-1">
+              1. Tire o print de cada vídeo e <b>nomeie com o número</b> do
+              vídeo: <code>1.jpg</code>, <code>2.jpg</code>, <code>3.jpg</code>...
+              <br />
+              2. Escolha o nicho abaixo e selecione <b>todos os prints de uma
+              vez</b>.
+              <br />
+              3. O sistema casa cada print com o vídeo correspondente
+              (<code>Nicho #1</code>, <code>#2</code>...).
+            </p>
+          </div>
+          <Field label="Nicho">
+            <select
+              name="nicho_id"
+              required
+              value={capasNicho}
+              onChange={(e) => setCapasNicho(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Selecione o nicho...</option>
+              {nichos.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.nome}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Selecione os prints (vários de uma vez)">
+            <input
+              type="file"
+              name="capas"
+              accept="image/*"
+              multiple
+              required
+              className="block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-brand-600"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCapasOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <SubmitButton label="Enviar capas" pendingLabel="Enviando..." />
           </div>
         </form>
       </Modal>

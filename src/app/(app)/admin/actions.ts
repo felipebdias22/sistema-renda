@@ -183,6 +183,62 @@ export async function importVideos(formData: FormData) {
   revalidatePath("/videos");
 }
 
+/**
+ * Capas em massa: sobe vários prints de uma vez para um nicho.
+ * Casa cada arquivo pelo NÚMERO no nome (1, 2, 3...) com o "#N" do título
+ * do vídeo. Se o nome não tiver número, usa a ordem do arquivo como fallback.
+ */
+export async function importCapas(formData: FormData) {
+  const supabase = await assertAdmin();
+  const nicho_id = str(formData.get("nicho_id"));
+  if (!nicho_id) return;
+
+  const files = formData
+    .getAll("capas")
+    .filter((f): f is File => f instanceof File && f.size > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  if (files.length === 0) return;
+
+  const { data: videos } = await supabase
+    .from("videos")
+    .select("id, titulo")
+    .eq("nicho_id", nicho_id);
+  if (!videos || videos.length === 0) return;
+
+  // mapa: número do título (#N) -> id do vídeo
+  const byNum = new Map<number, string>();
+  const ordenados = videos
+    .map((v) => {
+      const m = (v.titulo as string).match(/#(\d+)\s*$/);
+      const n = m ? parseInt(m[1], 10) : NaN;
+      if (!isNaN(n)) byNum.set(n, v.id as string);
+      return { id: v.id as string, n: isNaN(n) ? Infinity : n };
+    })
+    .sort((a, b) => a.n - b.n);
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const m = file.name.match(/(\d+)/);
+    const num = m ? parseInt(m[1], 10) : null;
+    const videoId =
+      num != null && byNum.has(num) ? byNum.get(num) : ordenados[i]?.id;
+    if (!videoId) continue;
+
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const up = await supabase.storage
+      .from("capas")
+      .upload(path, bytes, { contentType: file.type || "image/jpeg" });
+    if (up.error) continue;
+    const url = supabase.storage.from("capas").getPublicUrl(path).data.publicUrl;
+    await supabase.from("videos").update({ capa_url: url }).eq("id", videoId);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/videos");
+}
+
 /* ---------------- AGENTES ---------------- */
 
 export async function saveAgente(formData: FormData) {
