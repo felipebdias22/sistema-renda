@@ -7,7 +7,14 @@ import { Modal } from "@/components/ui/modal";
 import { VimeoPlayer } from "@/components/ui/vimeo-player";
 import { vimeoThumb, vimeoId, formatDateBR, cn } from "@/lib/utils";
 
-type Ordem = "recentes" | "antigos" | "az";
+type Ordem = "misturado" | "recentes" | "antigos" | "az";
+
+// hash estável a partir de uma string (pra embaralhar de forma consistente na sessão)
+function hashStr(s: string) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
 
 export function VideosBrowser({
   videos,
@@ -21,9 +28,11 @@ export function VideosBrowser({
   const [busca, setBusca] = useState("");
   const [nicho, setNicho] = useState("");
   const [pais, setPais] = useState("");
-  const [ordem, setOrdem] = useState<Ordem>("recentes");
+  const [ordem, setOrdem] = useState<Ordem>("misturado");
   const [active, setActive] = useState<Video | null>(null);
   const [favs, setFavs] = useState<Set<string>>(new Set());
+  // semente do embaralhamento — fixa durante a visita, muda a cada acesso
+  const [seed] = useState(() => Math.floor(Math.random() * 1e9).toString());
 
   const filtered = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -36,19 +45,21 @@ export function VideosBrowser({
           (v.descricao ?? "").toLowerCase().includes(termo))
     );
     arr.sort((a, b) => {
+      if (ordem === "misturado")
+        return hashStr(a.id + seed) - hashStr(b.id + seed);
       if (ordem === "az") return a.titulo.localeCompare(b.titulo);
       const da = new Date(a.criado_em).getTime();
       const db = new Date(b.criado_em).getTime();
       return ordem === "recentes" ? db - da : da - db;
     });
     return arr;
-  }, [videos, busca, nicho, pais, ordem]);
+  }, [videos, busca, nicho, pais, ordem, seed]);
 
   const limpar = () => {
     setBusca("");
     setNicho("");
     setPais("");
-    setOrdem("recentes");
+    setOrdem("misturado");
   };
 
   function toggleFav(id: string, e: React.MouseEvent) {
@@ -117,8 +128,9 @@ export function VideosBrowser({
         <FiltroSelect
           value={ordem}
           onChange={(v) => setOrdem(v as Ordem)}
-          placeholder="Mais Recentes"
+          placeholder="Embaralhado"
           options={[
+            { value: "misturado", label: "Embaralhado" },
             { value: "recentes", label: "Mais Recentes" },
             { value: "antigos", label: "Mais Antigos" },
             { value: "az", label: "Ordem A-Z" },
