@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Plus, Pencil, Trash2, PlaySquare, Tags, Globe, Bot } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  PlaySquare,
+  Tags,
+  Globe,
+  Bot,
+  ListPlus,
+} from "lucide-react";
 import type { Agente, Nicho, Pais, Video } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +19,7 @@ import { Modal } from "@/components/ui/modal";
 import {
   saveVideo,
   deleteVideo,
+  importVideos,
   saveNicho,
   deleteNicho,
   savePais,
@@ -91,12 +101,18 @@ function DeleteButton({
   );
 }
 
-/** Botão de salvar que se desabilita enquanto a ação roda (evita duplicar). */
-function SubmitButton() {
+/** Botão de envio que se desabilita enquanto a ação roda (evita duplicar). */
+function SubmitButton({
+  label = "Salvar",
+  pendingLabel = "Salvando...",
+}: {
+  label?: string;
+  pendingLabel?: string;
+}) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? "Salvando..." : "Salvar"}
+      {pending ? pendingLabel : label}
     </Button>
   );
 }
@@ -146,6 +162,9 @@ function VideosAdmin({
 }) {
   const [editing, setEditing] = useState<Video | null>(null);
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [impNicho, setImpNicho] = useState("");
+  const [impPais, setImpPais] = useState("");
 
   function add() {
     setEditing(null);
@@ -156,9 +175,21 @@ function VideosAdmin({
     setOpen(true);
   }
 
+  const tituloBase = nichos.find((n) => n.id === impNicho)?.nome ?? "Vídeo viral";
+
   return (
     <div className="space-y-4">
-      <Toolbar title="Vídeos" onAdd={add} />
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold">Vídeos</h3>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
+            <ListPlus size={15} /> Importar em massa
+          </Button>
+          <Button size="sm" onClick={add}>
+            <Plus size={15} /> Novo
+          </Button>
+        </div>
+      </div>
       <div className="card divide-y divide-navy-700">
         {videos.length === 0 && (
           <p className="p-5 text-sm text-slate-400">Nenhum vídeo cadastrado.</p>
@@ -221,12 +252,12 @@ function VideosAdmin({
               className="input-field resize-none"
             />
           </Field>
-          <Field label="URL do Vimeo">
+          <Field label="Link do vídeo (Vimeo, Facebook, YouTube...)">
             <input
               name="vimeo_url"
               required
               defaultValue={editing?.vimeo_url}
-              placeholder="https://vimeo.com/123456789"
+              placeholder="https://www.facebook.com/reel/... ou https://vimeo.com/..."
               className="input-field"
             />
           </Field>
@@ -278,6 +309,93 @@ function VideosAdmin({
               Cancelar
             </Button>
             <SubmitButton />
+          </div>
+        </form>
+      </Modal>
+
+      {/* Importação em massa */}
+      <Modal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Importar vídeos em massa"
+        className="max-w-lg"
+      >
+        <form
+          action={async (fd) => {
+            await importVideos(fd);
+            setImportOpen(false);
+            setImpNicho("");
+            setImpPais("");
+          }}
+          className="space-y-4 p-5"
+        >
+          <Field label="Cole os links (um por linha)">
+            <textarea
+              name="links"
+              required
+              rows={8}
+              placeholder={
+                "https://www.facebook.com/reel/123...\nhttps://www.facebook.com/share/r/abc...\n\n(opcional: Título personalizado | https://link)"
+              }
+              className="input-field resize-none font-mono text-xs"
+            />
+          </Field>
+          <p className="-mt-2 text-xs text-slate-500">
+            Cada linha vira um vídeo. O nicho/país escolhidos abaixo valem para
+            todos. Os títulos são gerados automaticamente (você pode editar
+            depois).
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nicho (todos)">
+              <select
+                name="nicho_id"
+                value={impNicho}
+                onChange={(e) => setImpNicho(e.target.value)}
+                className="input-field"
+              >
+                <option value="">—</option>
+                {nichos.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.nome}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="País (todos)">
+              <select
+                name="pais_id"
+                value={impPais}
+                onChange={(e) => setImpPais(e.target.value)}
+                className="input-field"
+              >
+                <option value="">—</option>
+                {paises.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <input type="hidden" name="titulo_base" value={tituloBase} />
+          <label className="flex items-center gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              name="ativo"
+              defaultChecked
+              className="h-4 w-4 accent-brand"
+            />
+            Ativos
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setImportOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <SubmitButton label="Importar" pendingLabel="Importando..." />
           </div>
         </form>
       </Modal>

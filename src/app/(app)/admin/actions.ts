@@ -97,6 +97,45 @@ export async function deleteVideo(id: string) {
   revalidatePath("/videos");
 }
 
+/**
+ * Importa vários vídeos de uma vez. Cole um link por linha.
+ * Aceita também o formato opcional:  Título | https://link
+ */
+export async function importVideos(formData: FormData) {
+  const supabase = await assertAdmin();
+  const raw = str(formData.get("links"));
+  const nicho_id = str(formData.get("nicho_id")) || null;
+  const pais_id = str(formData.get("pais_id")) || null;
+  const ativo = formData.get("ativo") === "on";
+  const tituloBase = str(formData.get("titulo_base")) || "Vídeo viral";
+
+  const linhas = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.includes("http"));
+
+  if (linhas.length === 0) return;
+
+  const rows = linhas.map((linha, i) => {
+    let titulo = `${tituloBase} #${i + 1}`;
+    let url = linha;
+    const partes = linha.split("|");
+    const possivelUrl = partes.slice(1).join("|").trim();
+    if (partes.length >= 2 && /^https?:\/\//i.test(possivelUrl)) {
+      titulo = partes[0].trim() || titulo;
+      url = possivelUrl;
+    } else {
+      const m = linha.match(/https?:\/\/\S+/);
+      if (m) url = m[0];
+    }
+    return { titulo, descricao: null, vimeo_url: url, nicho_id, pais_id, ativo };
+  });
+
+  await supabase.from("videos").insert(rows);
+  revalidatePath("/admin");
+  revalidatePath("/videos");
+}
+
 /* ---------------- AGENTES ---------------- */
 
 export async function saveAgente(formData: FormData) {

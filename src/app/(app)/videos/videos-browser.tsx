@@ -5,7 +5,7 @@ import { Play, Search, Heart, SlidersHorizontal, X } from "lucide-react";
 import type { Nicho, Pais, Video } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { VimeoPlayer } from "@/components/ui/vimeo-player";
-import { vimeoThumb, formatDateBR, cn } from "@/lib/utils";
+import { vimeoThumb, vimeoId, formatDateBR, cn } from "@/lib/utils";
 
 type Ordem = "recentes" | "antigos" | "az";
 
@@ -58,6 +58,15 @@ export function VideosBrowser({
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  }
+
+  // Vimeo abre no player do sistema; Facebook/outros abrem em nova aba
+  function abrirVideo(v: Video) {
+    if (vimeoId(v.vimeo_url)) {
+      setActive(v);
+    } else {
+      window.open(v.vimeo_url, "_blank", "noopener,noreferrer");
+    }
   }
 
   return (
@@ -140,7 +149,7 @@ export function VideosBrowser({
               video={v}
               fav={favs.has(v.id)}
               onToggleFav={(e) => toggleFav(v.id, e)}
-              onOpen={() => setActive(v)}
+              onOpen={() => abrirVideo(v)}
             />
           ))}
         </div>
