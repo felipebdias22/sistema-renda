@@ -162,17 +162,24 @@ function VideosAdmin({
 }) {
   const [editing, setEditing] = useState<Video | null>(null);
   const [open, setOpen] = useState(false);
+  const [capaPreview, setCapaPreview] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [impNicho, setImpNicho] = useState("");
   const [impPais, setImpPais] = useState("");
 
   function add() {
     setEditing(null);
+    setCapaPreview(null);
     setOpen(true);
   }
   function edit(v: Video) {
     setEditing(v);
+    setCapaPreview(v.capa_url ?? null);
     setOpen(true);
+  }
+  function onCapaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    setCapaPreview(f ? URL.createObjectURL(f) : editing?.capa_url ?? null);
   }
 
   const tituloBase = nichos.find((n) => n.id === impNicho)?.nome ?? "Vídeo viral";
@@ -261,6 +268,39 @@ function VideosAdmin({
               className="input-field"
             />
           </Field>
+
+          <Field label="Capa do vídeo (print) — recomendado">
+            <div className="space-y-2">
+              {capaPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={capaPreview}
+                  alt="prévia da capa"
+                  className="aspect-video w-full rounded-lg border border-navy-700 object-cover"
+                />
+              )}
+              <input
+                type="file"
+                name="capa"
+                accept="image/*"
+                onChange={onCapaChange}
+                className="block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-brand-600"
+              />
+              <p className="text-xs text-slate-500">
+                Suba um print do vídeo (ideal 16:9). Ou cole uma URL de imagem:
+              </p>
+              <input
+                name="capa_url"
+                placeholder="https://...imagem.jpg (opcional)"
+                className="input-field"
+              />
+            </div>
+          </Field>
+          <input
+            type="hidden"
+            name="capa_atual"
+            value={editing?.capa_url ?? ""}
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nicho">
               <select

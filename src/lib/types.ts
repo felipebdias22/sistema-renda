@@ -20,6 +20,7 @@ export type Video = {
   pais_id: string | null;
   ativo: boolean;
   criado_em: string;
+  capa_url?: string | null;
   nicho?: Nicho | null;
   pais?: Pais | null;
   thumb?: string | null;

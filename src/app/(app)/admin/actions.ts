@@ -69,9 +69,34 @@ export async function deletePais(id: string) {
 
 /* ---------------- VÍDEOS ---------------- */
 
+// Sobe a capa (print) para o bucket e devolve a URL pública. Retorna null se nada enviado.
+async function uploadCapa(
+  supabase: ReturnType<typeof createServiceClient>,
+  formData: FormData
+): Promise<string | null> {
+  const file = formData.get("capa");
+  if (!(file instanceof File) || file.size === 0) return null;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const { error } = await supabase.storage
+    .from("capas")
+    .upload(path, bytes, { contentType: file.type || "image/jpeg" });
+  if (error) return null;
+  return supabase.storage.from("capas").getPublicUrl(path).data.publicUrl;
+}
+
 export async function saveVideo(formData: FormData) {
   const supabase = await assertAdmin();
   const id = str(formData.get("id"));
+
+  // Capa: prioridade → arquivo enviado > URL colada > capa atual
+  let capa_url: string | null = str(formData.get("capa_atual")) || null;
+  const capaUrlColada = str(formData.get("capa_url"));
+  if (capaUrlColada) capa_url = capaUrlColada;
+  const capaUpload = await uploadCapa(supabase, formData);
+  if (capaUpload) capa_url = capaUpload;
+
   const payload = {
     titulo: str(formData.get("titulo")),
     descricao: str(formData.get("descricao")) || null,
@@ -79,6 +104,7 @@ export async function saveVideo(formData: FormData) {
     nicho_id: str(formData.get("nicho_id")) || null,
     pais_id: str(formData.get("pais_id")) || null,
     ativo: formData.get("ativo") === "on",
+    capa_url,
   };
   if (!payload.titulo || !payload.vimeo_url) return;
   if (id) {
@@ -119,16 +145,26 @@ export async function importVideos(formData: FormData) {
   const rows = linhas.map((linha, i) => {
     let titulo = `${tituloBase} #${i + 1}`;
     let url = linha;
-    const partes = linha.split("|");
-    const possivelUrl = partes.slice(1).join("|").trim();
-    if (partes.length >= 2 && /^https?:\/\//i.test(possivelUrl)) {
-      titulo = partes[0].trim() || titulo;
-      url = possivelUrl;
+    let capa_url: string | null = null;
+    const partes = linha.split("|").map((p) => p.trim());
+    if (partes.length >= 2 && /^https?:\/\//i.test(partes[1])) {
+      // formato: Título | link [| capa_url]
+      titulo = partes[0] || titulo;
+      url = partes[1];
+      if (partes[2] && /^https?:\/\//i.test(partes[2])) capa_url = partes[2];
     } else {
       const m = linha.match(/https?:\/\/\S+/);
       if (m) url = m[0];
     }
-    return { titulo, descricao: null, vimeo_url: url, nicho_id, pais_id, ativo };
+    return {
+      titulo,
+      descricao: null,
+      vimeo_url: url,
+      capa_url,
+      nicho_id,
+      pais_id,
+      ativo,
+    };
   });
 
   await supabase.from("videos").insert(rows);
