@@ -142,8 +142,19 @@ export async function importVideos(formData: FormData) {
 
   if (linhas.length === 0) return;
 
+  // Continua a numeração de onde parou (não reinicia em #1 numa nova importação)
+  let offset = 0;
+  const { data: existentes } = await supabase
+    .from("videos")
+    .select("titulo")
+    .ilike("titulo", `${tituloBase} #%`);
+  for (const row of existentes ?? []) {
+    const m = (row.titulo as string)?.match(/#(\d+)\s*$/);
+    if (m) offset = Math.max(offset, parseInt(m[1], 10));
+  }
+
   const rows = linhas.map((linha, i) => {
-    let titulo = `${tituloBase} #${i + 1}`;
+    let titulo = `${tituloBase} #${offset + i + 1}`;
     let url = linha;
     let capa_url: string | null = null;
     const partes = linha.split("|").map((p) => p.trim());
