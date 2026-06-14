@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { VideosBrowser } from "./videos-browser";
 import { getVimeoThumbnail } from "@/lib/vimeo";
+import { uniqueBy } from "@/lib/utils";
 import type { Nicho, Pais, Video } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +30,8 @@ export default async function VideosPage() {
   return (
     <VideosBrowser
       videos={videos}
-      nichos={(nichosRes.data as Nicho[]) ?? []}
-      paises={(paisesRes.data as Pais[]) ?? []}
+      nichos={uniqueBy((nichosRes.data as Nicho[]) ?? [], (n) => n.nome)}
+      paises={uniqueBy((paisesRes.data as Pais[]) ?? [], (p) => p.codigo)}
     />
   );
 }

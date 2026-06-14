@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { uniqueBy } from "@/lib/utils";
 import type { Agente, Nicho, Pais, Video } from "@/lib/types";
 import { AdminPanel } from "./admin-panel";
 
@@ -35,8 +36,8 @@ export default async function AdminPage() {
       </div>
       <AdminPanel
         videos={(videos.data as Video[]) ?? []}
-        nichos={(nichos.data as Nicho[]) ?? []}
-        paises={(paises.data as Pais[]) ?? []}
+        nichos={uniqueBy((nichos.data as Nicho[]) ?? [], (n) => n.nome)}
+        paises={uniqueBy((paises.data as Pais[]) ?? [], (p) => p.codigo)}
         agentes={(agentes.data as Agente[]) ?? []}
       />
     </div>

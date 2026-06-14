@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Remove duplicados de uma lista com base numa chave (mantém o primeiro). */
+export function uniqueBy<T>(arr: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return arr.filter((item) => {
+    const k = key(item).trim().toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 /**
  * Converte uma URL do Vimeo em URL embutível no player.
  * Aceita: https://vimeo.com/123456789, /123/hash, ou já um link de player.
