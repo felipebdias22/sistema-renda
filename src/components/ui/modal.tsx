@@ -45,11 +45,11 @@ export function Modal({
       />
       <div
         className={cn(
-          "card relative z-10 w-full max-w-3xl overflow-hidden",
+          "card relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden",
           className
         )}
       >
-        <div className="flex items-center justify-between border-b border-navy-700 px-5 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-navy-700 px-5 py-3">
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           <button
             onClick={onClose}
@@ -59,7 +59,7 @@ export function Modal({
             <X size={18} />
           </button>
         </div>
-        <div>{children}</div>
+        <div className="overflow-y-auto">{children}</div>
       </div>
     </div>
   );
