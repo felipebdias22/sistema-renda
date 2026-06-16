@@ -312,6 +312,25 @@ function VideosAdmin({
             name="capa_atual"
             value={editing?.capa_url ?? ""}
           />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Views (ex: 2.4M)">
+              <input
+                name="views"
+                defaultValue={editing?.views ?? ""}
+                placeholder="2.4M"
+                className="input-field"
+              />
+            </Field>
+            <Field label="Engajamento (ex: 85k curtidas)">
+              <input
+                name="engajamento"
+                defaultValue={editing?.engajamento ?? ""}
+                placeholder="85k curtidas"
+                className="input-field"
+              />
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nicho">
               <select

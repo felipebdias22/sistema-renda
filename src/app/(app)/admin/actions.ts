@@ -104,6 +104,8 @@ export async function saveVideo(formData: FormData) {
     nicho_id: str(formData.get("nicho_id")) || null,
     pais_id: str(formData.get("pais_id")) || null,
     ativo: formData.get("ativo") === "on",
+    views: str(formData.get("views")) || null,
+    engajamento: str(formData.get("engajamento")) || null,
     capa_url,
   };
   if (!payload.titulo || !payload.vimeo_url) return;

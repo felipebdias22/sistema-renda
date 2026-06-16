@@ -21,6 +21,8 @@ export type Video = {
   ativo: boolean;
   criado_em: string;
   capa_url?: string | null;
+  views?: string | null;
+  engajamento?: string | null;
   nicho?: Nicho | null;
   pais?: Pais | null;
   thumb?: string | null;

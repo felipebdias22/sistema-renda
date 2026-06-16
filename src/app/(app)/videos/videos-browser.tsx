@@ -1,11 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Play, Search, Heart, SlidersHorizontal, X } from "lucide-react";
+import Link from "next/link";
+import {
+  Play,
+  Search,
+  Heart,
+  SlidersHorizontal,
+  X,
+  Sparkles,
+  Bot,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import type { Nicho, Pais, Video } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { VimeoPlayer } from "@/components/ui/vimeo-player";
+import { Button } from "@/components/ui/button";
 import { vimeoThumb, vimeoId, formatDateBR, cn } from "@/lib/utils";
+
+type Analise = {
+  publico: string;
+  porque_converte: string;
+  gancho: string;
+  como_adaptar: string;
+  cta: string;
+};
 
 type Ordem = "misturado" | "recentes" | "antigos" | "az";
 
@@ -33,6 +53,36 @@ export function VideosBrowser({
   const [favs, setFavs] = useState<Set<string>>(new Set());
   // semente do embaralhamento — fixa durante a visita, muda a cada acesso
   const [seed] = useState(() => Math.floor(Math.random() * 1e9).toString());
+  // análise (IA) do vídeo aberto
+  const [analise, setAnalise] = useState<Analise | null>(null);
+  const [analiseLoading, setAnaliseLoading] = useState(false);
+  const [analiseErro, setAnaliseErro] = useState<string | null>(null);
+
+  function fecharModal() {
+    setActive(null);
+    setAnalise(null);
+    setAnaliseErro(null);
+    setAnaliseLoading(false);
+  }
+
+  async function gerarAnalise(videoId: string) {
+    setAnaliseErro(null);
+    setAnaliseLoading(true);
+    try {
+      const res = await fetch("/api/ia/analise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro");
+      setAnalise(data);
+    } catch (e) {
+      setAnaliseErro(e instanceof Error ? e.message : "Erro ao gerar análise.");
+    } finally {
+      setAnaliseLoading(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -71,13 +121,11 @@ export function VideosBrowser({
     });
   }
 
-  // Vimeo abre no player do sistema; Facebook/outros abrem em nova aba
+  // Sempre abre o modal de detalhes (com player/assistir, métricas e análise)
   function abrirVideo(v: Video) {
-    if (vimeoId(v.vimeo_url)) {
-      setActive(v);
-    } else {
-      window.open(v.vimeo_url, "_blank", "noopener,noreferrer");
-    }
+    setActive(v);
+    setAnalise(null);
+    setAnaliseErro(null);
   }
 
   return (
@@ -167,15 +215,39 @@ export function VideosBrowser({
         </div>
       )}
 
-      <Modal
-        open={!!active}
-        onClose={() => setActive(null)}
-        title={active?.titulo}
-      >
+      <Modal open={!!active} onClose={fecharModal} title={active?.titulo}>
         {active && (
           <div>
-            <VimeoPlayer url={active.vimeo_url} title={active.titulo} />
-            <div className="space-y-2 p-5">
+            {/* Player (Vimeo) ou botão de assistir (Facebook/externo) */}
+            {vimeoId(active.vimeo_url) ? (
+              <VimeoPlayer url={active.vimeo_url} title={active.titulo} />
+            ) : (
+              <a
+                href={active.vimeo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-gradient-to-br from-navy-700 via-navy-800 to-navy-950"
+              >
+                {(active.capa_url ?? active.thumb) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={active.capa_url ?? active.thumb ?? ""}
+                    alt={active.titulo}
+                    className="absolute inset-0 h-full w-full object-cover opacity-50"
+                  />
+                )}
+                <span className="relative z-10 flex flex-col items-center gap-2 text-center">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand text-white shadow-glow">
+                    <Play size={26} className="ml-1" fill="currentColor" />
+                  </span>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                    <ExternalLink size={14} /> Assistir no Facebook
+                  </span>
+                </span>
+              </a>
+            )}
+
+            <div className="space-y-4 p-5">
               <div className="flex flex-wrap gap-2">
                 {active.nicho?.nome && (
                   <span className="rounded-md bg-navy-800 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
@@ -188,15 +260,97 @@ export function VideosBrowser({
                   </span>
                 )}
               </div>
+
+              {/* Métricas reais */}
+              {(active.views || active.engajamento) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {active.views && (
+                    <div className="rounded-xl border border-navy-700 bg-navy-900/50 p-3">
+                      <p className="label-muted">Views</p>
+                      <p className="mt-0.5 text-xl font-extrabold text-foreground">
+                        {active.views}
+                      </p>
+                    </div>
+                  )}
+                  {active.engajamento && (
+                    <div className="rounded-xl border border-navy-700 bg-navy-900/50 p-3">
+                      <p className="label-muted">Engajamento</p>
+                      <p className="mt-0.5 text-xl font-extrabold text-accent-green">
+                        {active.engajamento}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {active.descricao && (
                 <p className="text-sm leading-relaxed text-slate-300">
                   {active.descricao}
                 </p>
               )}
+
+              {/* Análise da IA */}
+              {!analise && !analiseLoading && (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => gerarAnalise(active.id)}
+                >
+                  <Sparkles size={16} /> Ver análise
+                </Button>
+              )}
+              {analiseLoading && (
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-navy-700 bg-navy-900/50 py-6 text-sm text-slate-400">
+                  <Loader2 size={16} className="animate-spin" /> Gerando
+                  análise...
+                </div>
+              )}
+              {analiseErro && (
+                <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                  {analiseErro}
+                </p>
+              )}
+              {analise && (
+                <div className="space-y-3 rounded-xl border border-brand/30 bg-brand/5 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-brand-400">
+                    <Sparkles size={15} /> Análise estratégica
+                  </div>
+                  <AnaliseLinha titulo="Público" texto={analise.publico} />
+                  <AnaliseLinha
+                    titulo="Por que converte"
+                    texto={analise.porque_converte}
+                  />
+                  <AnaliseLinha titulo="Gancho" texto={analise.gancho} />
+                  <AnaliseLinha
+                    titulo="Como adaptar"
+                    texto={analise.como_adaptar}
+                  />
+                  <AnaliseLinha titulo="CTA" texto={analise.cta} />
+                </div>
+              )}
+
+              {/* Ir para Agentes GPT */}
+              <Link href="/agentes" onClick={fecharModal}>
+                <Button variant="primary" className="w-full">
+                  <Bot size={16} /> Criar com os Agentes GPT
+                </Button>
+              </Link>
             </div>
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+function AnaliseLinha({ titulo, texto }: { titulo: string; texto: string }) {
+  if (!texto) return null;
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        {titulo}
+      </p>
+      <p className="mt-0.5 text-sm leading-relaxed text-slate-200">{texto}</p>
     </div>
   );
 }
